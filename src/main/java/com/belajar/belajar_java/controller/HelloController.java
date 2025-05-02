@@ -2,18 +2,21 @@ package com.belajar.belajar_java.controller;
 
 
 import com.belajar.belajar_java.Person;
+import com.belajar.belajar_java.repository.PersonRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class HelloController {
 
-    List<Person> personList = new ArrayList<>();
+    @Autowired
+    PersonRepository personRepository;
+
 
     @GetMapping("/hello")
     public Person hello(){
@@ -22,42 +25,42 @@ public class HelloController {
 
     @PostMapping("/person")
     public Person addPerson(@RequestBody Person person){
-        personList.add(person);
+        personRepository.save(person);
         return person;
     }
 
-    @GetMapping("/person/{nama}")
-    public Person getPersonList(@PathVariable String nama){
-        for (Person value : personList) {
-            if (value.getNama().equals(nama)) {
-                return value;
-            }
+    @GetMapping("/person/{id}")
+    public Optional<Person> getPersonList(@PathVariable Long id){
+        Optional<Person> person = personRepository.findById(id);
+        if (person.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Data tidak ditemukan");
+
         }
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Data tidak ditemukan");
+        return person;
     }
 
-    @PutMapping("/person/{nama}")
-    public Person updatePerson(@PathVariable String nama, @RequestBody Person person){
-        for (Person value : personList) {
-            if (value.getNama().equals(nama)) {
-                value.setUmur(person.getUmur());
-                value.setNama(person.getNama());
-                return value;
-            }
+    @PutMapping("/person/{id}")
+    public Optional<Person> updatePerson(@PathVariable Long id, @RequestBody Person personReq){
+        Optional<Person> person = personRepository.findById(id);
+        if (person.isPresent()){
+            person.get().setNama(personReq.getNama());
+            person.get().setUmur(personReq.getUmur());
+        }else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Data tidak ditemukan");
         }
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Data tidak ditemukan");
+        return person;
 
     }
 
-    @DeleteMapping("/person/{nama}")
-    public ResponseEntity<String> deletePerson(@PathVariable String nama, @RequestBody Person person){
-        for (Person value : personList) {
-            if (value.getNama().equals(nama)) {
-                personList.remove(value);
-                return ResponseEntity.ok("Sukses Delete");
-            }
+    @DeleteMapping("/person/{id}")
+    public ResponseEntity<String> deletePerson(@PathVariable Long id, @RequestBody Person personReq){
+        Optional<Person> person = personRepository.findById(id);
+        if (person.isPresent()){
+            personRepository.delete(person.get());
+        }else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Data tidak ditemukan");
         }
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Data tidak ditemukan");
+        return ResponseEntity.ok("Sukses Delete");
     }
 
 }
